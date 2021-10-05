@@ -45,7 +45,7 @@ defmodule Test.MixProject do
       {:gettext, "~> 0.18"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
-      {:jxl_ex, github: "wwww-wwww/jxl_ex"},
+      {:jxl_ex, github: "wwww-wwww/jxl_ex", tag: "f92999eb8ff10b872c4aea495bbfc17a760161cb"},
       {:png, github: "yuce/png"},
       {:httpoison, "~> 1.8"}
     ]
