@@ -23,7 +23,7 @@ defmodule TestWeb.PageController do
 
             :png ->
               {:ok, dec} =
-                JxlEx.Decoder.new!(1)
+                JxlEx.Decoder.new!()
                 |> JxlEx.Decoder.load(body)
 
               png_data =
