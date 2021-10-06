@@ -44,12 +44,17 @@ defmodule TestWeb.PageController do
     end
   end
 
-  def jxl(conn, %{"q" => q, "to" => "png"}) do
-    case download(q, :png) do
+  def jxl_png(%{path_params: %{"path" => [req | path]}} = conn, _) do
+    url = "#{req}//#{path |> Enum.join("/")}?#{conn.query_string}"
+
+    case download(url, :png) do
       {:ok, mime, data} ->
         conn
         |> put_resp_content_type(mime)
-        |> put_resp_header("Content-disposition", "inline; filename=\"#{Path.basename(q)}.png\"")
+        |> put_resp_header(
+          "Content-disposition",
+          "inline; filename=\"#{Path.basename(url)}.png\""
+        )
         |> send_resp(200, data)
 
       {:error, err} ->
@@ -57,36 +62,41 @@ defmodule TestWeb.PageController do
     end
   end
 
-  def jxl(conn, %{"q" => q}) do
-    case download(q, :jxl) do
-      {:ok, mime, data} ->
-        conn
-        |> put_resp_content_type(mime)
-        |> put_resp_header("Content-disposition", "inline; filename=\"#{Path.basename(q)}\"")
-        |> send_resp(200, data)
-
-      {:error, err} ->
-        conn |> send_resp(500, inspect(err))
-    end
-  end
-
-  def jxl_auto(conn, %{"q" => q}) do
+  def jxl_auto(%{path_params: %{"path" => [req | path]}} = conn, params) do
     case conn do
       %{req_headers: req_headers} ->
         case req_headers |> Enum.filter(&(elem(&1, 0) == "accept")) do
           [{"accept", accepts}] ->
             if "image/jxl" in String.split(accepts, ",") do
-              jxl(conn, %{"q" => q})
+              jxl(conn, params)
             else
-              jxl(conn, %{"q" => q, "to" => "png"})
+              jxl_png(conn, params)
             end
 
           _ ->
-            jxl(conn, %{"q" => q, "to" => "png"})
+            jxl_png(conn, params)
         end
 
       _ ->
-        jxl(conn, %{"q" => q, "to" => "png"})
+        jxl_png(conn, params)
+    end
+  end
+
+  def jxl(%{path_params: %{"path" => [req | path]}} = conn, _) do
+    url = "#{req}//#{path |> Enum.join("/")}?#{conn.query_string}"
+
+    case download(url, :jxl) do
+      {:ok, mime, data} ->
+        conn
+        |> put_resp_content_type(mime)
+        |> put_resp_header(
+          "Content-disposition",
+          "inline; filename=\"#{Path.basename(path)}\""
+        )
+        |> send_resp(200, data)
+
+      {:error, err} ->
+        conn |> send_resp(500, inspect(err))
     end
   end
 end
