@@ -46,6 +46,7 @@ defmodule Test.MixProject do
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
       {:jxl_ex, github: "wwww-wwww/jxl_ex", submodules: true},
+      {:elixir_cmake, github: "wwww-wwww/elixir-cmake", tag: "410d62b7fd772eb45f52effbe342ad172f67fe4a", override: true},
       {:png, github: "yuce/png"},
       {:httpoison, "~> 1.8"}
     ]
