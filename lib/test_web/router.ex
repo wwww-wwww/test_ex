@@ -17,11 +17,12 @@ defmodule TestWeb.Router do
   scope "/", TestWeb do
     pipe_through(:browser)
 
+    get("/jxl/http*path", PageController, :jxl)
+    get("/png/http*path", PageController, :jxl_png)
+    get("/jxl/", PageController, :index)
+    get("/png/", PageController, :index)
+    get("/http*path", PageController, :jxl_auto)
     get("/", PageController, :index)
-    get("/jxl/jxl/*path", PageController, :jxl)
-    get("/jxl/png/*path", PageController, :jxl_png)
-    get("/jxl/auto/*path", PageController, :jxl_auto)
-    get("/jxl/*path", PageController, :jxl_auto)
   end
 
   if Mix.env() in [:dev, :test] do
