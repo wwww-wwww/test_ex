@@ -22,13 +22,8 @@ defmodule TestWeb.PageController do
               {:ok, "image/jxl", body}
 
             :png ->
-              {:ok, dec} =
-                JxlEx.Decoder.new!()
-                |> JxlEx.Decoder.load(body)
-
               png_data =
-                dec
-                |> JxlEx.Decoder.next!()
+                GenServer.call(Test.Decoder, {:decode, body}, 30000)
                 |> Test.Png.encode()
 
               # mime = if animated, do: "image/apng", else: "image/png"

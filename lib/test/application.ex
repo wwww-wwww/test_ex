@@ -13,9 +13,8 @@ defmodule Test.Application do
       # Start the PubSub system
       {Phoenix.PubSub, name: Test.PubSub},
       # Start the Endpoint (http/https)
-      TestWeb.Endpoint
-      # Start a worker by calling: Test.Worker.start_link(arg)
-      # {Test.Worker, arg}
+      TestWeb.Endpoint,
+      Test.Decoder
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
