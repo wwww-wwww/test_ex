@@ -18,9 +18,10 @@ defmodule TestWeb.Router do
     pipe_through(:browser)
 
     get("/", PageController, :index)
-    get("/jxl/auto/*path", PageController, :jxl_auto)
+    get("/jxl/jxl/*path", PageController, :jxl)
     get("/jxl/png/*path", PageController, :jxl_png)
-    get("/jxl/*path", PageController, :jxl)
+    get("/jxl/auto/*path", PageController, :jxl_auto)
+    get("/jxl/*path", PageController, :jxl_auto)
   end
 
   if Mix.env() in [:dev, :test] do

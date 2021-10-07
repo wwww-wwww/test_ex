@@ -23,7 +23,7 @@ defmodule TestWeb.PageController do
 
             :png ->
               png_data =
-                GenServer.call(Test.Decoder, {:decode, body}, 30000)
+                GenServer.call(Test.Decoder, {:decode, body}, 100_000)
                 |> Test.Png.encode()
 
               # mime = if animated, do: "image/apng", else: "image/png"
@@ -48,7 +48,7 @@ defmodule TestWeb.PageController do
         |> put_resp_content_type(mime)
         |> put_resp_header(
           "Content-disposition",
-          "inline; filename=\"#{Path.basename(url)}.png\""
+          "inline; filename=\"#{Path.basename(path |> Enum.join("/"))}.png\""
         )
         |> send_resp(200, data)
 
@@ -60,20 +60,35 @@ defmodule TestWeb.PageController do
   def jxl_auto(%{path_params: %{"path" => [req | path]}} = conn, params) do
     case conn do
       %{req_headers: req_headers} ->
-        case req_headers |> Enum.filter(&(elem(&1, 0) == "accept")) do
-          [{"accept", accepts}] ->
-            if "image/jxl" in String.split(accepts, ",") do
-              jxl(conn, params)
-            else
-              jxl_png(conn, params)
-            end
+        user_agent = req_headers |> Enum.filter(&(elem(&1, 0) == "user-agent"))
 
-          _ ->
-            jxl_png(conn, params)
+        bot =
+          case user_agent do
+            [{"user-agent", user_agent}] ->
+              user_agent |> String.downcase() |> String.contains?("discord")
+
+            _ ->
+              false
+          end
+
+        if bot do
+          jxl_png(conn, params)
+        else
+          case req_headers |> Enum.filter(&(elem(&1, 0) == "accept")) do
+            [{"accept", accepts}] ->
+              if accepts == "*/*" or "image/jxl" in String.split(accepts, ",") do
+                jxl(conn, params)
+              else
+                jxl_png(conn, params)
+              end
+
+            _ ->
+              jxl_png(conn, params)
+          end
         end
 
       _ ->
-        jxl_png(conn, params)
+        jxl(conn, params)
     end
   end
 
@@ -86,7 +101,7 @@ defmodule TestWeb.PageController do
         |> put_resp_content_type(mime)
         |> put_resp_header(
           "Content-disposition",
-          "inline; filename=\"#{Path.basename(path)}\""
+          "inline; filename=\"#{Path.basename(path |> Enum.join("/"))}\""
         )
         |> send_resp(200, data)
 
