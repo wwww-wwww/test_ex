@@ -11,7 +11,7 @@ defmodule Test.Decoder do
 
   def handle_call({:decode, data}, _, state) do
     im =
-      JxlEx.Decoder.new!(1)
+      JxlEx.Decoder.new!()
       |> JxlEx.Decoder.load!(data)
       |> JxlEx.Decoder.next!()
 
