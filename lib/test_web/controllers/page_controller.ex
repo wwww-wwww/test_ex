@@ -14,7 +14,10 @@ defmodule TestWeb.PageController do
   end
 
   def download(url, out) do
-    case HTTPoison.get(url) do
+    url
+    |> URI.encode()
+    |> HTTPoison.get()
+    |> case do
       {:ok, %HTTPoison.Response{body: body}} ->
         if JxlEx.Decoder.is_jxl?(body) do
           case out do
