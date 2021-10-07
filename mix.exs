@@ -10,7 +10,16 @@ defmodule Test.MixProject do
       compilers: [:gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      releases: [
+        test: [
+          include_erts: true,
+          include_executables_for: [:unix],
+          applications: [
+            runtime_tools: :permanent
+          ]
+        ]
+      ]
     ]
   end
 
@@ -46,6 +55,7 @@ defmodule Test.MixProject do
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
       {:jxl_ex, github: "wwww-wwww/jxl_ex", submodules: true},
+      {:elixir_cmake, github: "wwww-wwww/elixir-cmake", tag: "410d62b7fd772eb45f52effbe342ad172f67fe4a", override: true},
       {:png, github: "yuce/png"},
       {:httpoison, "~> 1.8"}
     ]

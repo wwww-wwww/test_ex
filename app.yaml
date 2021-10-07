@@ -1,0 +1,8 @@
+env: flex
+runtime: gs://elixir-runtime/elixir.yaml
+runtime_config:
+  release_app: test
+  packages:
+    - cmake
+    - g++
+instance_class: F4_1G

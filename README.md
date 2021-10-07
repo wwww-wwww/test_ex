@@ -1,5 +1,7 @@
 # Test
 
+## this builds and goes through all but the end of the deployment process, crashing when loading the nif
+
 To start your Phoenix server:
 
   * Install dependencies with `mix deps.get`
