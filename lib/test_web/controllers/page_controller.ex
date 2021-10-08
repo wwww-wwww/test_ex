@@ -26,8 +26,15 @@ defmodule TestWeb.PageController do
 
             :png ->
               png_data =
-                GenServer.call(Test.Decoder, {:decode, body}, 100_000)
-                |> Test.Png.encode()
+                case Test.DecodeCache.get(url) do
+                  nil ->
+                    GenServer.call(Test.Decoder, {:decode, body}, 100_000)
+                    |> Test.Png.encode()
+                    |> Test.DecodeCache.put(url)
+
+                  data ->
+                    data
+                end
 
               # mime = if animated, do: "image/apng", else: "image/png"
               mime = "image/png"

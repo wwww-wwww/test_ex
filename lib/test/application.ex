@@ -14,6 +14,7 @@ defmodule Test.Application do
       {Phoenix.PubSub, name: Test.PubSub},
       # Start the Endpoint (http/https)
       TestWeb.Endpoint,
+      Test.DecodeCache,
       Test.Decoder
     ]
 
