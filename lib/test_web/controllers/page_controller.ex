@@ -31,8 +31,8 @@ defmodule TestWeb.PageController do
             :png ->
               {animated, png_data} = Test.DecodeCacheDecoder.get(url, &encode_png/1, [body])
 
-              mime = if animated, do: "image/apng", else: "image/png"
-              # mime = "image/png"
+              #mime = if animated, do: "image/apng", else: "image/png"
+              mime = "image/png"
               {:ok, mime, png_data}
 
             _ ->
