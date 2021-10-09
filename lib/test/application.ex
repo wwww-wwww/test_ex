@@ -15,6 +15,7 @@ defmodule Test.Application do
       # Start the Endpoint (http/https)
       TestWeb.Endpoint,
       Test.DecodeCache,
+      Test.DecodeCacheDecoder,
       Test.Decoder
     ]
 

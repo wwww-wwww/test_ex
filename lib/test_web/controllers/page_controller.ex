@@ -5,11 +5,15 @@ defmodule TestWeb.PageController do
     render(conn, "index.html")
   end
 
-  defp decode_all_frames(dec) do
-    case dec |> JxlEx.Decoder.next() do
-      {:ok, %{animation: %{is_last: 0}} = im} -> [im] ++ decode_all_frames(dec)
-      {:ok, im} -> [im]
-      _ -> []
+  def encode_png(body) do
+    {basic_info, frames} = Test.Decoder.decode(body)
+
+    case frames do
+      [frame] ->
+        {false, Test.Png.encode(frame)}
+
+      frames ->
+        {true, Test.Png.encode_animation(frames, basic_info)}
     end
   end
 
@@ -25,19 +29,10 @@ defmodule TestWeb.PageController do
               {:ok, "image/jxl", body}
 
             :png ->
-              png_data =
-                case Test.DecodeCache.get(url) do
-                  nil ->
-                    GenServer.call(Test.Decoder, {:decode, body}, 100_000)
-                    |> Test.Png.encode()
-                    |> Test.DecodeCache.put(url)
+              {animated, png_data} = Test.DecodeCacheDecoder.get(url, &encode_png/1, [body])
 
-                  data ->
-                    data
-                end
-
-              # mime = if animated, do: "image/apng", else: "image/png"
-              mime = "image/png"
+              mime = if animated, do: "image/apng", else: "image/png"
+              # mime = "image/png"
               {:ok, mime, png_data}
 
             _ ->
