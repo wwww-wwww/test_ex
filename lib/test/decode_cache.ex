@@ -60,8 +60,6 @@ defmodule Test.DecodeCache do
   end
 
   def handle_call({:put, url, data}, _, state) do
-    current_time = :os.system_time(:second)
-
     state =
       if not state.routine do
         Process.send_after(__MODULE__, :routine, @routine_interval)
