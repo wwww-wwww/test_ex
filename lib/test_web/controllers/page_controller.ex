@@ -5,33 +5,35 @@ defmodule TestWeb.PageController do
     render(conn, "index.html")
   end
 
-  def encode_png(body) do
-    {basic_info, frames} = Test.Decoder.decode(body)
-
-    case frames do
-      [frame] ->
-        {false, Test.Png.encode(frame)}
-
-      frames ->
-        {true, Test.Png.encode_animation(frames, basic_info)}
-    end
-  end
-
   def get_path(%{path_params: %{"path" => [req | path]}} = conn) do
+    path = path |> Enum.join("/")
+
     url =
       if conn.query_string |> String.length() > 0 do
-        "#{req}//#{path |> Enum.join("/")}?#{conn.query_string}"
+        "#{req}//#{path}?#{conn.query_string}"
       else
-        "#{req}//#{path |> Enum.join("/")}"
+        "#{req}//#{path}"
       end
 
     {url, path}
   end
 
+  def encode_png(body) do
+    {basic_info, frames} = Test.Decoder.decode(body)
+
+    case frames do
+      [frame] ->
+        {false, ImageEx.Png.encode(frame) |> ImageEx.Png.reencode() |> elem(1)}
+
+      frames ->
+        {true, ImageEx.Png.encode_animation(frames, basic_info)}
+    end
+  end
+
   def encode_gif(body) do
     {basic_info, frames} = Test.Decoder.decode(body)
 
-    rate = basic_info.animation.tps_denominator / basic_info.animation.tps_numerator * 10
+    rate = basic_info.animation.tps_denominator / basic_info.animation.tps_numerator * 100
 
     {:ok, encoder} = ImageEx.Gif.create(basic_info.xsize, basic_info.ysize, 8)
 
@@ -44,52 +46,62 @@ defmodule TestWeb.PageController do
       encoder
       |> ImageEx.Gif.add_frame!(
         frame.image,
-        round(rate / frame.animation.duration)
+        round(rate * frame.animation.duration)
       )
     end)
     |> ImageEx.Gif.finish!()
   end
 
-  def decode(url, body, out) do
+  def _decode(body, url, out) do
     case out do
-      :jxl ->
-        {:ok, "image/jxl", body}
-
       :png ->
         {_, png_data} = Test.DecodeCacheDecoder.get({url, :png}, &encode_png/1, [body])
-        {:ok, "image/png", png_data}
+        {:ok, "image/png", "png", png_data}
 
       :gif ->
         gif_data = Test.DecodeCacheDecoder.get({url, :gif}, &encode_gif/1, [body])
-        {:ok, "image/gif", gif_data}
+        {:ok, "image/gif", "gif", gif_data}
 
       _ ->
         {:error, "Unsupported output format"}
     end
   end
 
-  def download(url, out) do
+  def decode(body, url, out) do
+    case body do
+      {:error, err} -> {:error, err}
+      {:ok, body} -> _decode(body, url, out)
+      body -> _decode(body, url, out)
+    end
+  end
+
+  def download(url) do
     url
     |> URI.encode()
     |> HTTPoison.get()
     |> case do
       {:ok, %HTTPoison.Response{body: body}} ->
         if JxlEx.Decoder.is_jxl?(body) do
-          decode(url, body, out)
+          {:ok, body}
         else
           {:error, "Not a valid jxl"}
         end
+
+      err ->
+        {:error, inspect(err)}
     end
   end
 
   def jxl_gif(conn, %{"q" => q}) do
-    case download(q, :gif) do
-      {:ok, mime, data} ->
+    download(q)
+    |> decode(q, :gif)
+    |> case do
+      {:ok, mime, ext, data} ->
         conn
         |> put_resp_content_type(mime)
         |> put_resp_header(
           "Content-disposition",
-          "inline; filename=\"#{Path.basename(q)}.gif\""
+          "inline; filename=\"#{Path.basename(q)}.#{ext}\""
         )
         |> send_resp(200, data)
 
@@ -101,13 +113,15 @@ defmodule TestWeb.PageController do
   def jxl_gif(conn, _) do
     {url, path} = get_path(conn)
 
-    case download(url, :gif) do
-      {:ok, mime, data} ->
+    download(url)
+    |> decode(url, :gif)
+    |> case do
+      {:ok, mime, ext, data} ->
         conn
         |> put_resp_content_type(mime)
         |> put_resp_header(
           "Content-disposition",
-          "inline; filename=\"#{Path.basename(path |> Enum.join("/"))}.gif\""
+          "inline; filename=\"#{Path.basename(path)}.#{ext}\""
         )
         |> send_resp(200, data)
 
@@ -119,13 +133,15 @@ defmodule TestWeb.PageController do
   def jxl_png(conn, _) do
     {url, path} = get_path(conn)
 
-    case download(url, :png) do
-      {:ok, mime, data} ->
+    download(url)
+    |> decode(url, :png)
+    |> case do
+      {:ok, mime, ext, data} ->
         conn
         |> put_resp_content_type(mime)
         |> put_resp_header(
           "Content-disposition",
-          "inline; filename=\"#{Path.basename(path |> Enum.join("/"))}.png\""
+          "inline; filename=\"#{Path.basename(path)}.#{ext}\""
         )
         |> send_resp(200, data)
 
@@ -134,36 +150,7 @@ defmodule TestWeb.PageController do
     end
   end
 
-  def auto(conn) do
-    {url, path} = get_path(conn)
-
-    case download(url, :jxl) do
-      {:ok, _mime, body} ->
-        # basic_info =
-        #  JxlEx.Decoder.new!(1)
-        #  |> JxlEx.Decoder.load!(body)
-        #  |> JxlEx.Decoder.basic_info!()
-
-        case decode(url, body, :png) do
-          {:ok, mime, data} ->
-            conn
-            |> put_resp_content_type(mime)
-            |> put_resp_header(
-              "Content-disposition",
-              "inline; filename=\"#{Path.basename(path |> Enum.join("/"))}.png\""
-            )
-            |> send_resp(200, data)
-
-          {:error, err} ->
-            conn |> send_resp(500, inspect(err))
-        end
-
-      err ->
-        conn |> send_resp(500, inspect(err))
-    end
-  end
-
-  def jxl_auto(conn, params) do
+  def jxl_supported?(conn) do
     case conn do
       %{req_headers: req_headers} ->
         user_agent = req_headers |> Enum.filter(&(elem(&1, 0) == "user-agent"))
@@ -178,38 +165,89 @@ defmodule TestWeb.PageController do
           end
 
         if bot do
-          auto(conn)
+          false
         else
           case req_headers |> Enum.filter(&(elem(&1, 0) == "accept")) do
             [{"accept", accepts}] ->
               if accepts == "*/*" or "image/jxl" in String.split(accepts, ",") do
-                jxl(conn, params)
+                true
               else
-                auto(conn)
+                false
               end
 
             _ ->
-              auto(conn)
+              false
           end
         end
 
       _ ->
-        jxl(conn, params)
+        true
     end
+  end
+
+  def _jxl_auto(conn, {url, path}) do
+    case download(url) do
+      {:ok, body} ->
+        if jxl_supported?(conn) do
+          conn
+          |> put_resp_content_type("image/jxl")
+          |> put_resp_header(
+            "Content-disposition",
+            "inline; filename=\"#{Path.basename(path)}\""
+          )
+          |> send_resp(200, body)
+        else
+          basic_info =
+            JxlEx.Decoder.new!(1)
+            |> JxlEx.Decoder.load!(body)
+            |> JxlEx.Decoder.basic_info!()
+
+          if basic_info.have_animation do
+            _decode(body, url, :gif)
+          else
+            _decode(body, url, :png)
+          end
+          |> case do
+            {:ok, mime, ext, data} ->
+              conn
+              |> put_resp_content_type(mime)
+              |> put_resp_header(
+                "Content-disposition",
+                "inline; filename=\"#{Path.basename(path)}.#{ext}\""
+              )
+              |> send_resp(200, data)
+
+            err ->
+              conn |> send_resp(500, inspect(err))
+          end
+        end
+
+      err ->
+        conn |> send_resp(500, inspect(err))
+    end
+  end
+
+  def jxl_auto(conn, %{"q" => q}) do
+    _jxl_auto(conn, {q, q})
+  end
+
+  def jxl_auto(conn, _) do
+    _jxl_auto(conn, get_path(conn))
   end
 
   def jxl(conn, _) do
     {url, path} = get_path(conn)
 
-    case download(url, :jxl) do
-      {:ok, mime, data} ->
+    download(url)
+    |> case do
+      {:ok, body} ->
         conn
-        |> put_resp_content_type(mime)
+        |> put_resp_content_type("image/jxl")
         |> put_resp_header(
           "Content-disposition",
-          "inline; filename=\"#{Path.basename(path |> Enum.join("/"))}\""
+          "inline; filename=\"#{Path.basename(path)}\""
         )
-        |> send_resp(200, data)
+        |> send_resp(200, body)
 
       {:error, err} ->
         conn |> send_resp(500, inspect(err))

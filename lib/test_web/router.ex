@@ -20,10 +20,11 @@ defmodule TestWeb.Router do
     get("/jxl/http*path", PageController, :jxl)
     get("/png/http*path", PageController, :jxl_png)
     get("/gif/http*path", PageController, :jxl_gif)
-    get("/image.gif", PageController, :jxl_gif)
     get("/jxl/", PageController, :index)
     get("/png/", PageController, :index)
     get("/gif/", PageController, :index)
+    get("/image.gif", PageController, :jxl_gif)
+    get("/auto.gif", PageController, :jxl_auto)
     get("/http*path", PageController, :jxl_auto)
     get("/", PageController, :index)
   end
