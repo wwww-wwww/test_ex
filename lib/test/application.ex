@@ -16,7 +16,9 @@ defmodule Test.Application do
       TestWeb.Endpoint,
       Test.DecodeCache,
       Test.DecodeCacheDecoder,
-      Test.Decoder
+      Test.Decoder,
+      Test.InteractionHandler,
+      Test.Consumer
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

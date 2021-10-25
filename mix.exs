@@ -47,8 +47,10 @@ defmodule Test.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:jxl_ex, github: "wwww-wwww/jxl_ex", submodules: true},
       {:image_ex, github: "wwww-wwww/image_ex"},
-      {:elixir_cmake, github: "wwww-wwww/elixir-cmake", tag: "122e900bd94a2c3ac4b86dc83f074ea31e2b2f9c", override: true},
-      {:httpoison, "~> 1.8"}
+      {:httpoison, "~> 1.8"},
+      {:nostrum, github: "Kraigie/nostrum"},
+      {:gun, "2.0.1", hex: :remedy_gun, override: true},
+      {:cowlib, "~> 2.11", hex: :remedy_cowlib, override: true}
     ]
   end
 

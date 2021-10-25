@@ -1,3 +1,20 @@
 <p>items in decode cache: <%= Test.DecodeCache.cache_size() %></p>
 
+<div>
+
+<h3>Endpoints:</h3>
+<ul>
+  <li>
+    /jxl/URL - force jxl
+    <ul><li>?only=SIZE - limit download to SIZE</li></ul>
+  </li>
+  <li>/png/URL - force png</li>
+  <li>/gif/URL - force gif</li>
+  <li>/image.gif - force gif</li>
+  <li>/auto.gif - auto (jxl/png/gif) with gif extension in url</li>
+  <li>/URL - auto (jxl/png/gif)</li>
+</ul>
+
+</div>
+
 <a href="https://github.com/wwww-wwww/test_ex">https://github.com/wwww-wwww/test_ex</a>

@@ -197,12 +197,11 @@ defmodule TestWeb.PageController do
           )
           |> send_resp(200, body)
         else
-          basic_info =
-            JxlEx.Decoder.new!(1)
-            |> JxlEx.Decoder.load!(body)
-            |> JxlEx.Decoder.basic_info!()
-
-          if basic_info.have_animation do
+          JxlEx.Decoder.new!(1)
+          |> JxlEx.Decoder.load!(body)
+          |> JxlEx.Decoder.basic_info!()
+          |> Map.get(:have_animation)
+          |> if do
             _decode(body, url, :gif)
           else
             _decode(body, url, :png)
@@ -227,12 +226,40 @@ defmodule TestWeb.PageController do
     end
   end
 
-  def jxl_auto(conn, %{"q" => q}) do
+  def jxl_auto_gif(conn, %{"q" => q}) do
     _jxl_auto(conn, {q, q})
   end
 
   def jxl_auto(conn, _) do
     _jxl_auto(conn, get_path(conn))
+  end
+
+  def jxl(conn, %{"only" => only}) do
+    {url, path} = get_path(conn)
+
+    {only, _} = Integer.parse(only)
+
+    if only > 0 do
+      download(url)
+      |> case do
+        {:ok, body} ->
+          only = min(only, byte_size(body))
+          <<truncated::binary-size(only), _rest::binary>> = body
+
+          conn
+          |> put_resp_content_type("image/jxl")
+          |> put_resp_header(
+            "Content-disposition",
+            "inline; filename=\"#{Path.basename(path)}\""
+          )
+          |> send_resp(200, truncated)
+
+        {:error, err} ->
+          conn |> send_resp(500, inspect(err))
+      end
+    else
+      conn |> send_resp(400, "Bad range.")
+    end
   end
 
   def jxl(conn, _) do

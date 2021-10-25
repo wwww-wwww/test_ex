@@ -17,6 +17,7 @@ defmodule TestWeb.Router do
   scope "/", TestWeb do
     pipe_through(:browser)
 
+    get("/", PageController, :index)
     get("/jxl/http*path", PageController, :jxl)
     get("/png/http*path", PageController, :jxl_png)
     get("/gif/http*path", PageController, :jxl_gif)
@@ -24,9 +25,8 @@ defmodule TestWeb.Router do
     get("/png/", PageController, :index)
     get("/gif/", PageController, :index)
     get("/image.gif", PageController, :jxl_gif)
-    get("/auto.gif", PageController, :jxl_auto)
+    get("/auto.gif", PageController, :jxl_auto_gif)
     get("/http*path", PageController, :jxl_auto)
-    get("/", PageController, :index)
   end
 
   if Mix.env() in [:dev, :test] do
