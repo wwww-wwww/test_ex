@@ -19,13 +19,11 @@ defmodule TestWeb.PageController do
   end
 
   def encode_png(body) do
-    {basic_info, frames} = Test.Decoder.decode(body)
+    case Test.Decoder.decode(body) do
+      {_, [frame]} ->
+        {false, ImageEx.Png.encode(frame)}
 
-    case frames do
-      [frame] ->
-        {false, ImageEx.Png.encode(frame) |> ImageEx.Png.reencode() |> elem(1)}
-
-      frames ->
+      {basic_info, frames} ->
         {true, ImageEx.Png.encode_animation(frames, basic_info)}
     end
   end
