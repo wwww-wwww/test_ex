@@ -8,6 +8,7 @@ import Config
 # with esbuild to bundle .js and .css sources.
 config :test, TestWeb.Endpoint,
   http: [ip: {0, 0, 0, 0}, port: 5005],
+  url: [host: "test.grass.moe", scheme: "https", port: 443],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,

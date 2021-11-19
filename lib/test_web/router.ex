@@ -29,6 +29,12 @@ defmodule TestWeb.Router do
     get("/http*path", PageController, :jxl_auto)
   end
 
+  scope "/api", TestWeb do
+    pipe_through(:api)
+
+    post("/interactions", ApiController, :interaction)
+  end
+
   if Mix.env() in [:dev, :test] do
     import Phoenix.LiveDashboard.Router
 

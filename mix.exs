@@ -49,8 +49,8 @@ defmodule Test.MixProject do
       {:image_ex, github: "wwww-wwww/image_ex"},
       {:httpoison, "~> 1.8"},
       {:nostrum, github: "Kraigie/nostrum"},
-      {:gun, "2.0.1", hex: :remedy_gun, override: true},
-      {:cowlib, "~> 2.11", hex: :remedy_cowlib, override: true}
+      {:cowlib, "~> 2.11", hex: :remedy_cowlib, override: true},
+      {:ed25519, "~> 1.3"}
     ]
   end
 

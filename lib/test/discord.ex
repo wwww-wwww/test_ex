@@ -10,67 +10,54 @@ defmodule Test.Consumer do
 
   def do_interaction(
         "Embed",
-        %Interaction{data: %{resolved: %{messages: messages}}} = interaction
+        %{data: %{resolved: %{messages: messages}}} = interaction
       ) do
     case Map.to_list(messages) do
-      [{_, %{attachments: [%{url: url}]}}] ->
-        TestWeb.PageController.download(url)
+      [{_, %{attachments: attachments}}] ->
+        attachments
+        |> Enum.map(&TestWeb.ApiController.map_to_atom(&1).url)
+        |> Enum.reduce_while([], fn url, acc ->
+          TestWeb.PageController.download(url)
+          |> case do
+            {:ok, body} ->
+              {:cont, acc ++ [{url, body}]}
+
+            _ ->
+              {:halt, :err}
+          end
+        end)
         |> case do
-          {:ok, body} ->
-            Api.create_interaction_response(interaction, %{
-              type: 5
-            })
-
-            JxlEx.Decoder.new!(1)
-            |> JxlEx.Decoder.load!(body)
-            |> JxlEx.Decoder.basic_info!()
-            |> Map.get(:have_animation)
-            |> if do
-              GenServer.cast(
-                Test.InteractionHandler,
-                {:decode, body, url, :gif, interaction,
-                 %{
-                   content:
-                     TestWeb.Router.Helpers.page_url(TestWeb.Endpoint, :jxl_auto_gif, q: url)
-                 }}
-              )
-            else
-              GenServer.cast(
-                Test.InteractionHandler,
-                {:decode, body, url, :png, interaction,
-                 %{
-                   content:
-                     TestWeb.Router.Helpers.page_url(TestWeb.Endpoint, :index)
-                     |> URI.merge("/#{url}")
-                     |> URI.to_string()
-                 }}
-              )
-            end
-
-          _ ->
-            Api.create_interaction_response(interaction, %{
+          :err ->
+            %{
               type: 4,
               data: %{content: "This only works on JXL files!", flags: 64}
-            })
+            }
+
+          [] ->
+            %{
+              type: 4,
+              data: %{content: "This only works on JXL files!", flags: 64}
+            }
+
+          items ->
+            GenServer.cast(Test.InteractionHandler, {:process, items, interaction})
+
+            %{type: 5}
         end
 
       _ ->
-        Api.create_interaction_response(interaction, %{
+        %{
           type: 4,
           data: %{content: "This only works on JXL files!", flags: 64}
-        })
+        }
     end
   end
 
   def do_interaction(name, interaction) do
-    Api.create_interaction_response(interaction, %{
+    %{
       type: 1,
-      data: %{content: "Unhandled interaction #{name}: #{inspect(interaction)}", flags: 64}
-    })
-  end
-
-  def handle_event({:INTERACTION_CREATE, %Interaction{data: %{name: name}} = interaction, _}) do
-    do_interaction(name, interaction)
+      data: %{content: "Unhandled interaction #{name}", flags: 64}
+    }
   end
 
   def handle_event(_event) do
@@ -90,10 +77,28 @@ defmodule Test.InteractionHandler do
     {:ok, state}
   end
 
-  def handle_cast({:decode, body, url, type, interaction, data}, state) do
-    TestWeb.PageController.decode(body, url, type)
+  def handle_cast({:process, items, interaction}, state) do
+    text =
+      items
+      |> Enum.map(fn {url, body} ->
+        JxlEx.Decoder.new!(1)
+        |> JxlEx.Decoder.load!(body)
+        |> JxlEx.Decoder.basic_info!()
+        |> Map.get(:have_animation)
+        |> if do
+          TestWeb.PageController.decode(body, url, :gif)
+          TestWeb.Router.Helpers.page_url(TestWeb.Endpoint, :jxl_auto_gif, q: url)
+        else
+          TestWeb.PageController.decode(body, url, :png)
 
-    Api.create_followup_message(interaction.token, data)
+          TestWeb.Router.Helpers.page_url(TestWeb.Endpoint, :index)
+          |> URI.merge("/#{url}")
+          |> URI.to_string()
+        end
+      end)
+      |> Enum.join("\n")
+
+    Api.create_followup_message(interaction.token, %{content: text})
 
     {:noreply, state}
   end
