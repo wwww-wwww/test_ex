@@ -9,6 +9,72 @@ defmodule Test.Consumer do
   end
 
   def do_interaction(
+        "jxl_from_tree",
+        %{data: %{resolved: %{messages: messages}}} = interaction
+      ) do
+    case Map.to_list(messages) do
+      [{_, %{attachments: attachments, content: content}}] ->
+        attachments
+        |> Enum.map(fn attachment ->
+          HTTPoison.get(attachment["url"])
+          |> case do
+            {:ok, %HTTPoison.Response{body: body}} ->
+              {attachment["filename"], body}
+
+            _ ->
+              nil
+          end
+        end)
+        |> Enum.filter(&(&1 != nil))
+        |> Kernel.++([{"message", content}])
+        |> Enum.filter(&(String.length(elem(&1, 1)) > 0))
+        |> Enum.reduce_while(nil, fn {filename, tree}, acc ->
+          case JxlEx.Base.jxl_from_tree(tree) do
+            {:ok, data} ->
+              {:halt, {:ok, filename, data}}
+
+            err ->
+              {:cont, err}
+          end
+        end)
+        |> case do
+          {:ok, filename, data} ->
+            GenServer.cast(
+              Test.InteractionHandler,
+              {:execute,
+               fn ->
+                 Api.create_followup_message(interaction.token, %{
+                   content: data,
+                   file: "#{filename}.jxl",
+                   tts: ""
+                 })
+               end}
+            )
+
+            %{type: 5}
+
+          {:error, err} ->
+            %{
+              type: 4,
+              data: %{content: err, flags: 64}
+            }
+
+          nil ->
+            %{
+              type: 4,
+              data: %{content: "This only works on JXL trees!", flags: 64}
+            }
+        end
+
+      _ ->
+        %{
+          type: 4,
+          data: %{content: "This only works on JXL trees!", flags: 64}
+        }
+    end
+  end
+
+  def do_interaction(
         "Embed",
         %{data: %{resolved: %{messages: messages}}} = interaction
       ) do
@@ -55,7 +121,7 @@ defmodule Test.Consumer do
 
   def do_interaction(name, interaction) do
     %{
-      type: 1,
+      type: 4,
       data: %{content: "Unhandled interaction #{name}", flags: 64}
     }
   end
@@ -75,6 +141,11 @@ defmodule Test.InteractionHandler do
 
   def init(state) do
     {:ok, state}
+  end
+
+  def handle_cast({:execute, f}, state) do
+    f.()
+    {:noreply, state}
   end
 
   def handle_cast({:process, items, interaction}, state) do

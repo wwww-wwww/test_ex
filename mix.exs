@@ -45,7 +45,7 @@ defmodule Test.MixProject do
       {:gettext, "~> 0.18"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
-      {:jxl_ex, github: "wwww-wwww/jxl_ex", submodules: true},
+      {:jxl_ex, github: "wwww-wwww/jxl_ex", submodules: true, branch: "jxl_from_tree"},
       {:image_ex, github: "wwww-wwww/image_ex"},
       {:httpoison, "~> 1.8"},
       {:nostrum, github: "Kraigie/nostrum"},
