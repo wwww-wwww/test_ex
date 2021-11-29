@@ -22,7 +22,7 @@ defmodule TestWeb.ApiController do
       conn |> put_status(401) |> text("invalid request signature")
     else
       key = Application.get_env(:test, :discord_public_key)
-      body = timestamp <> conn.private[:raw_body]
+      body = timestamp <> conn.assigns[:raw_body]
 
       if Ed25519.valid_signature?(sig, body, key) do
         do_interaction(conn, params)
