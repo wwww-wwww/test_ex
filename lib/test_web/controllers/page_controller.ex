@@ -75,7 +75,6 @@ defmodule TestWeb.PageController do
 
   def download(url) do
     url
-    |> URI.encode()
     |> HTTPoison.get()
     |> case do
       {:ok, %HTTPoison.Response{body: body}} ->
@@ -275,6 +274,36 @@ defmodule TestWeb.PageController do
         |> send_resp(200, body)
 
       {:error, err} ->
+        conn |> send_resp(500, inspect(err))
+    end
+  end
+
+  def jxl_tree(conn, %{"gzip" => data}) do
+    case Base.decode64(data) do
+      {:ok, tree_data} ->
+        try do
+          case :zlib.gunzip(tree_data) |> JxlEx.Base.jxl_from_tree() do
+            {:ok, data} ->
+              conn
+              |> put_resp_content_type("image/jxl")
+              |> put_resp_header(
+                "Content-disposition",
+                "inline; filename=\"jxl_from_tree.jxl\""
+              )
+              |> send_resp(200, data)
+
+            {:error, err} ->
+              conn |> send_resp(500, inspect(err))
+
+            err ->
+              conn |> send_resp(500, inspect(err))
+          end
+        catch
+          err ->
+            conn |> send_resp(500, inspect(err))
+        end
+
+      err ->
         conn |> send_resp(500, inspect(err))
     end
   end

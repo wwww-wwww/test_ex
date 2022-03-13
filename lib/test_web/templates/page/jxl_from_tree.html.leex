@@ -1,0 +1,36 @@
+<p><%= link("how??", to: "https://jxl-art.surma.technology/wtf.html") %></p>
+
+<form phx-change="tree">
+  <textarea id="txt_tree" phx-hook="txt_tree" name="tree"><%= if assigns[:tree_txt], do: assigns[:tree_txt], else: "" %></textarea>
+</form>
+
+<div>
+  <%= if assigns[:error] do %>
+  <div class="error"><%= @error %></div>
+  <% end %>
+</div>
+
+<div>
+  <%= if assigns[:image] do %>
+  <div><img src="<%= assigns[:image] %>"/></div>
+  <span>Image:</span>
+  <div style="word-break: break-all"><%= assigns[:image] %></div>
+  <% end %>
+</div>
+
+<div>
+  <%= if assigns[:tree] do %>
+  <% image_url = Routes.page_path(@socket, :jxl_tree, gzip: URI.encode(@tree)) %>
+  <head>
+    <meta property="og:image" content="<%= TestWeb.Router.Helpers.url(@socket) <> "/" <> TestWeb.Router.Helpers.url(@socket) <> image_url %>">
+  </head>
+  <span>
+    Tree:
+    <%= link("Image", to: image_url) %>
+    <%= link("Embed", to: TestWeb.Router.Helpers.url(@socket) <> "/" <> TestWeb.Router.Helpers.url(@socket) <> image_url) %>
+  </span>
+  <div style="word-break: break-all">
+    <%= link(@tree, to: Routes.live_path(@socket, TestWeb.TreeLive, tree: URI.encode(@tree))) %>
+  </div>
+  <% end %>
+</div>

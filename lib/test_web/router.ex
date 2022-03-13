@@ -17,6 +17,10 @@ defmodule TestWeb.Router do
   scope "/", TestWeb do
     pipe_through(:browser)
 
+    live("/jxl_from_tree", TreeLive)
+
+    get("/tree", PageController, :jxl_tree)
+
     get("/", PageController, :index)
     get("/jxl/http*path", PageController, :jxl)
     get("/png/http*path", PageController, :jxl_png)
