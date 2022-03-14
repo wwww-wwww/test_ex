@@ -10,27 +10,28 @@
   <% end %>
 </div>
 
+<%= if assigns[:image] do %>
+<% image_url = Routes.page_path(@socket, :jxl_tree, gzip: URI.encode(@tree)) %>
+
 <div>
-  <%= if assigns[:image] do %>
+  <div><%= assigns[:size] %> bytes</div>
   <div><img src="<%= assigns[:image] %>"/></div>
-  <span>Image:</span>
+  <span>
+    <%= link("Image", to: image_url) %>:
+    <%= link("Download", to: image_url, download: true) %>
+    <%= link("Embed", to: TestWeb.Router.Helpers.url(@socket) <> "/" <> TestWeb.Router.Helpers.url(@socket) <> image_url) %>
+  </span>
   <div style="word-break: break-all"><%= assigns[:image] %></div>
-  <% end %>
 </div>
 
 <div>
-  <%= if assigns[:tree] do %>
-  <% image_url = Routes.page_path(@socket, :jxl_tree, gzip: URI.encode(@tree)) %>
   <head>
     <meta property="og:image" content="<%= TestWeb.Router.Helpers.url(@socket) <> "/" <> TestWeb.Router.Helpers.url(@socket) <> image_url %>">
   </head>
-  <span>
-    Tree:
-    <%= link("Image", to: image_url) %>
-    <%= link("Embed", to: TestWeb.Router.Helpers.url(@socket) <> "/" <> TestWeb.Router.Helpers.url(@socket) <> image_url) %>
-  </span>
+  <span>Tree:</span>
   <div style="word-break: break-all">
     <%= link(@tree, to: Routes.live_path(@socket, TestWeb.TreeLive, tree: URI.encode(@tree))) %>
   </div>
-  <% end %>
 </div>
+
+<% end %>

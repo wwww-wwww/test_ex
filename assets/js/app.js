@@ -47,6 +47,16 @@ hooks.txt_tree = {
     this.el.addEventListener("input", () => {
       set_cookie("tree", this.el.value)
     })
+
+    this.el.addEventListener("keydown", e => {
+      if (e.keyCode == 9) {
+        e.preventDefault()
+        const cursor_position = this.el.selectionStart
+        this.el.value = this.el.value.slice(0, this.el.selectionStart) + "  " + this.el.value.slice(this.el.selectionEnd)
+        this.el.selectionStart = cursor_position + 2
+        this.el.selectionEnd = cursor_position + 2
+      }
+    })
   }
 }
 let liveSocket = new LiveSocket("/live", Socket, { params: { _csrf_token: csrfToken }, hooks: hooks })

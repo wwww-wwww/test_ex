@@ -10,6 +10,7 @@ defmodule TestWeb.TreeLive do
       {:ok, data} ->
         socket
         |> assign(:image, "data:image/jxl;base64, " <> Base.encode64(data))
+        |> assign(:size, data |> bit_size() |> Kernel./(8) |> trunc)
         |> assign(:tree, Base.encode64(:zlib.gzip(tree)))
         |> assign(:error, nil)
 
@@ -25,8 +26,7 @@ defmodule TestWeb.TreeLive do
     case Base.decode64(data) do
       {:ok, tree_data} ->
         try do
-          tree =
-            :zlib.gunzip(tree_data)
+          tree = :zlib.gunzip(tree_data)
 
           {:ok, put_tree(socket, tree) |> assign(:tree_txt, tree)}
         catch
@@ -47,8 +47,7 @@ defmodule TestWeb.TreeLive do
     case Base.decode64(data) do
       {:ok, tree_data} ->
         try do
-          tree =
-            :zlib.gunzip(tree_data)
+          tree = :zlib.gunzip(tree_data)
 
           {:noreply, put_tree(socket, tree) |> assign(:tree_txt, tree)}
         catch
