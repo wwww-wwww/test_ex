@@ -34,7 +34,7 @@ defmodule Test.Consumer do
               {:halt, {:ok, filename, data}}
 
             err ->
-              {:cont, err}
+              {:cont, inspect(err)}
           end
         end)
         |> case do
@@ -44,9 +44,10 @@ defmodule Test.Consumer do
               {:execute,
                fn ->
                  Api.create_followup_message(interaction.token, %{
-                   content: data,
-                   file: "#{filename}.jxl",
-                   tts: ""
+                   file: %{
+                     body: data,
+                     name: "#{filename}.jxl"
+                   }
                  })
                end}
             )
@@ -56,7 +57,7 @@ defmodule Test.Consumer do
           {:error, err} ->
             %{
               type: 4,
-              data: %{content: err, flags: 64}
+              data: %{content: inspect(err), flags: 64}
             }
 
           nil ->
