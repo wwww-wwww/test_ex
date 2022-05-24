@@ -2,7 +2,6 @@ defmodule Test.Consumer do
   use Nostrum.Consumer
 
   alias Nostrum.Api
-  alias Nostrum.Struct.Interaction
 
   def start_link do
     Consumer.start_link(__MODULE__)
@@ -28,7 +27,7 @@ defmodule Test.Consumer do
         |> Enum.filter(&(&1 != nil))
         |> Kernel.++([{"message", content}])
         |> Enum.filter(&(String.length(elem(&1, 1)) > 0))
-        |> Enum.reduce_while(nil, fn {filename, tree}, acc ->
+        |> Enum.reduce_while(nil, fn {filename, tree}, _ ->
           case JxlEx.Base.jxl_from_tree(tree) do
             {:ok, data} ->
               {:halt, {:ok, filename, data}}
@@ -54,16 +53,16 @@ defmodule Test.Consumer do
 
             %{type: 5}
 
-          {:error, err} ->
-            %{
-              type: 4,
-              data: %{content: inspect(err), flags: 64}
-            }
-
           nil ->
             %{
               type: 4,
               data: %{content: "This only works on JXL trees!", flags: 64}
+            }
+
+          err ->
+            %{
+              type: 4,
+              data: %{content: inspect(err), flags: 64}
             }
         end
 
@@ -120,7 +119,7 @@ defmodule Test.Consumer do
     end
   end
 
-  def do_interaction(name, interaction) do
+  def do_interaction(name, _interaction) do
     %{
       type: 4,
       data: %{content: "Unhandled interaction #{name}", flags: 64}
@@ -153,19 +152,14 @@ defmodule Test.InteractionHandler do
     text =
       items
       |> Enum.map(fn {url, body} ->
-        JxlEx.Decoder.new!(1)
-        |> JxlEx.Decoder.load!(body)
-        |> JxlEx.Decoder.basic_info!()
-        |> Map.get(:have_animation)
-        |> if do
-          TestWeb.PageController.decode(body, url, :gif)
-          TestWeb.Router.Helpers.page_url(TestWeb.Endpoint, :jxl_auto_gif, q: url)
-        else
-          TestWeb.PageController.decode(body, url, :png)
+        case TestWeb.PageController.decode(body, url, :auto) do
+          {:ok, _, "gif", _} ->
+            TestWeb.Router.Helpers.page_url(TestWeb.Endpoint, :jxl_auto_gif, q: url)
 
-          TestWeb.Router.Helpers.page_url(TestWeb.Endpoint, :index)
-          |> URI.merge("/#{url}")
-          |> URI.to_string()
+          {:ok, _, "png", _} ->
+            TestWeb.Router.Helpers.page_url(TestWeb.Endpoint, :index)
+            |> URI.merge("/#{url}")
+            |> URI.to_string()
         end
       end)
       |> Enum.join("\n")

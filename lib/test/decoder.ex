@@ -9,21 +9,8 @@ defmodule Test.Decoder do
     {:ok, state}
   end
 
-  defp decode_all_frames(dec) do
-    case dec |> JxlEx.Decoder.next() do
-      {:ok, %{animation: %{is_last: 0}} = im} -> [im] ++ decode_all_frames(dec)
-      {:ok, im} -> [im]
-      _ -> []
-    end
-  end
-
   def handle_call({:decode, data}, _, state) do
-    dec = JxlEx.Decoder.new!() |> JxlEx.Decoder.load!(data)
-
-    basic_info = JxlEx.Decoder.basic_info!(dec)
-    images = decode_all_frames(dec)
-
-    {:reply, {basic_info, images}, state}
+    {:reply, JxlEx.Decoder.decode!(data, 1), state}
   end
 
   def decode(data) do

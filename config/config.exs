@@ -34,11 +34,3 @@ config :phoenix, :json_library, Jason
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"
-
-config :nostrum,
-  token: Map.fetch!(System.get_env(), "DISCORD_TOKEN"),
-  num_shards: :auto
-
-config :test,
-  discord_public_key:
-    Base.decode16!(Map.fetch!(System.get_env(), "DISCORD_PUBLIC_KEY"), case: :mixed)

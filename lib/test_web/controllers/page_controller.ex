@@ -21,16 +21,19 @@ defmodule TestWeb.PageController do
   def encode_png(body) do
     case Test.Decoder.decode(body) do
       {_, [frame]} ->
-        {false, ImageEx.Png.encode(frame)}
+        ImageEx.Png.encode(frame)
 
       {basic_info, frames} ->
-        {true, ImageEx.Png.encode_animation(frames, basic_info)}
+        ImageEx.Png.encode_animation(frames, basic_info)
     end
   end
 
-  def encode_gif(body) do
-    {basic_info, frames} = Test.Decoder.decode(body)
+  def encode_gif(body) when is_bitstring(body) do
+    Test.Decoder.decode(body)
+    |> encode_gif()
+  end
 
+  def encode_gif({basic_info, frames}) do
     rate = basic_info.animation.tps_denominator / basic_info.animation.tps_numerator * 100
 
     {:ok, encoder} = ImageEx.Gif.create(basic_info.xsize, basic_info.ysize, 8)
@@ -50,10 +53,31 @@ defmodule TestWeb.PageController do
     |> ImageEx.Gif.finish!()
   end
 
-  def _decode(body, url, out) do
+  def encode_auto(body) do
+    case Test.Decoder.decode(body) do
+      {_, [frame]} ->
+        {:png, ImageEx.Png.encode(frame)}
+
+      {basic_info, frames} ->
+        {:gif, encode_gif({basic_info, frames})}
+    end
+  end
+
+  def decode({:ok, body}, url, out), do: decode(body, url, out)
+
+  def decode(body, url, out) when is_bitstring(body) do
     case out do
+      :auto ->
+        case Test.DecodeCacheDecoder.get({url, :auto}, &encode_auto/1, [body]) do
+          {:png, data} ->
+            {:ok, "image/png", "png", data}
+
+          {:gif, data} ->
+            {:ok, "image/gif", "gif", data}
+        end
+
       :png ->
-        {_, png_data} = Test.DecodeCacheDecoder.get({url, :png}, &encode_png/1, [body])
+        png_data = Test.DecodeCacheDecoder.get({url, :png}, &encode_png/1, [body])
         {:ok, "image/png", "png", png_data}
 
       :gif ->
@@ -65,13 +89,7 @@ defmodule TestWeb.PageController do
     end
   end
 
-  def decode(body, url, out) do
-    case body do
-      {:error, err} -> {:error, err}
-      {:ok, body} -> _decode(body, url, out)
-      body -> _decode(body, url, out)
-    end
-  end
+  def decode(err, _, _), do: err
 
   def download(url) do
     url
@@ -182,7 +200,7 @@ defmodule TestWeb.PageController do
     end
   end
 
-  def _jxl_auto(conn, {url, path}) do
+  def jxl_auto(conn, {url, path}) do
     case download(url) do
       {:ok, body} ->
         if jxl_supported?(conn) do
@@ -194,16 +212,7 @@ defmodule TestWeb.PageController do
           )
           |> send_resp(200, body)
         else
-          JxlEx.Decoder.new!(1)
-          |> JxlEx.Decoder.load!(body)
-          |> JxlEx.Decoder.basic_info!()
-          |> Map.get(:have_animation)
-          |> if do
-            _decode(body, url, :gif)
-          else
-            _decode(body, url, :png)
-          end
-          |> case do
+          case decode(body, url, :auto) do
             {:ok, mime, ext, data} ->
               conn
               |> put_resp_content_type(mime)
@@ -224,11 +233,11 @@ defmodule TestWeb.PageController do
   end
 
   def jxl_auto_gif(conn, %{"q" => q}) do
-    _jxl_auto(conn, {q, q})
+    jxl_auto(conn, {q, q})
   end
 
   def jxl_auto(conn, _) do
-    _jxl_auto(conn, get_path(conn))
+    jxl_auto(conn, get_path(conn))
   end
 
   def jxl(conn, %{"only" => only}) do
