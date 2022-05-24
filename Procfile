@@ -1,1 +1,1 @@
-web: mix phx.server
+web: mix do deps.loadpaths --no-deps-check, phx.server
