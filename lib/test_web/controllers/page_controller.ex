@@ -21,7 +21,7 @@ defmodule TestWeb.PageController do
   def encode_png(body) do
     case Test.Decoder.decode(body) do
       {_, [frame]} ->
-        ImageEx.Png.encode(frame)
+        ImageEx.Png.lodepng_encode(frame) |> elem(1)
 
       {basic_info, frames} ->
         ImageEx.Png.encode_animation(frames, basic_info)
@@ -56,7 +56,7 @@ defmodule TestWeb.PageController do
   def encode_auto(body) do
     case Test.Decoder.decode(body) do
       {_, [frame]} ->
-        {:png, ImageEx.Png.encode(frame)}
+        {:png, ImageEx.Png.lodepng_encode(frame) |> elem(1)}
 
       {basic_info, frames} ->
         {:gif, encode_gif({basic_info, frames})}
