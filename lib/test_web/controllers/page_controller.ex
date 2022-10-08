@@ -278,7 +278,7 @@ defmodule TestWeb.PageController do
     case Base.decode64(data) do
       {:ok, tree_data} ->
         try do
-          case :zlib.gunzip(tree_data) |> JxlEx.Base.jxl_from_tree() do
+          case :zlib.gunzip(tree_data) |> JxlEx.tree() do
             {:ok, data} ->
               conn
               |> put_resp_content_type("image/jxl")

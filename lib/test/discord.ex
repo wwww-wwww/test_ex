@@ -28,7 +28,7 @@ defmodule Test.Consumer do
         |> Kernel.++([{"message", content}])
         |> Enum.filter(&(String.length(elem(&1, 1)) > 0))
         |> Enum.reduce_while(nil, fn {filename, tree}, _ ->
-          case JxlEx.Base.jxl_from_tree(tree) do
+          case JxlEx.tree(tree) do
             {:ok, data} ->
               {:halt, {:ok, filename, data}}
 

@@ -6,7 +6,7 @@ defmodule TestWeb.TreeLive do
   end
 
   def put_tree(socket, tree) do
-    case JxlEx.Base.jxl_from_tree(tree) do
+    case JxlEx.tree(tree) do
       {:ok, data} ->
         socket
         |> assign(:image, "data:image/jxl;base64, " <> Base.encode64(data))
