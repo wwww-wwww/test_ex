@@ -34,7 +34,14 @@ defmodule TestWeb.PageController do
   end
 
   def encode_gif({basic_info, frames}) do
-    rate = basic_info.animation.tps_denominator / basic_info.animation.tps_numerator * 100
+    {rate, duration} =
+      case basic_info.animation do
+        %{tps_numerator: num, tps_denominator: den, duration: dur} ->
+          {den / num * 100, dur}
+
+        _ ->
+          {0, 0}
+      end
 
     {:ok, encoder} = ImageEx.Gif.create(basic_info.xsize, basic_info.ysize, 8)
 
@@ -47,7 +54,7 @@ defmodule TestWeb.PageController do
       encoder
       |> ImageEx.Gif.add_frame!(
         frame.image,
-        round(rate * frame.animation.duration)
+        round(rate * duration)
       )
     end)
     |> ImageEx.Gif.finish!()
