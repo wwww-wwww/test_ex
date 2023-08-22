@@ -32,6 +32,8 @@ defmodule TestWeb.Router do
     get("/image.gif", PageController, :jxl_gif)
     get("/auto.gif", PageController, :jxl_auto_gif)
     get("/http*path", PageController, :jxl_auto)
+
+    get("/attachments/*path", PageController, :proxy)
   end
 
   scope "/api", TestWeb do

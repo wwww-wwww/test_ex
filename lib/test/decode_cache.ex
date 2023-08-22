@@ -11,8 +11,8 @@ defmodule Test.DecodeCacheDecoder do
 
   def handle_call({:get, url, f, args}, _, state) do
     r =
-      case Test.DecodeCache.get(url) do
-        nil -> apply(f, args) |> Test.DecodeCache.put(url)
+      case Test.DecodeCacheDisk.get(url) do
+        nil -> apply(f, args) |> Test.DecodeCacheDisk.put(url)
         data -> data
       end
 
@@ -101,6 +101,94 @@ defmodule Test.DecodeCache do
   def put(data, url) do
     GenServer.call(__MODULE__, {:put, url, data})
     data
+  end
+
+  def cache_size() do
+    GenServer.call(__MODULE__, :cache_size)
+  end
+end
+
+defmodule Test.DecodeCacheDisk do
+  use GenServer
+
+  defstruct files: %{}, routine: false
+
+  @routine_interval 3600
+  @cache_duration 3600
+
+  def start_link(_) do
+    GenServer.start_link(__MODULE__, %__MODULE__{},
+      name: __MODULE__,
+      hibernate_after: 1_000
+    )
+  end
+
+  def init(state) do
+    {:ok, state}
+  end
+
+  def handle_call({:get, url}, _, state) do
+    f =
+      case Map.get(state.files, url) do
+        nil -> nil
+        {data, _} -> data
+      end
+
+    {:reply, f, state}
+  end
+
+  def handle_call({:put, url, data}, _, state) do
+    IO.inspect(data)
+    current_time = :os.system_time(:second)
+
+    state =
+      if not state.routine do
+        Process.send_after(__MODULE__, :routine, @routine_interval)
+        %{state | routine: true}
+      else
+        state
+      end
+
+    state = %{state | files: Map.put(state.files, url, {data, current_time})}
+
+    {:reply, data, state}
+  end
+
+  def handle_call(:cache_size, _, state) do
+    {:reply, Map.keys(state.files) |> length, state}
+  end
+
+  def handle_info(:routine, state) do
+    current_time = :os.system_time(:second)
+
+    new_files =
+      Enum.filter(state.files, fn {_, {{_, path}, time}} ->
+        if current_time - time > @cache_duration do
+          File.rm!(path)
+          false
+        else
+          true
+        end
+      end)
+      |> Map.new()
+
+    continue = Map.keys(new_files) |> length() > 0
+
+    state = %{state | files: new_files, routine: continue}
+
+    if continue do
+      Process.send_after(__MODULE__, :routine, @routine_interval)
+    end
+
+    {:noreply, state}
+  end
+
+  def get(url) do
+    GenServer.call(__MODULE__, {:get, url})
+  end
+
+  def put(data, url) do
+    GenServer.call(__MODULE__, {:put, url, data})
   end
 
   def cache_size() do

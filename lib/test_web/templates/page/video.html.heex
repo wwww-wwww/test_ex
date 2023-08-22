@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <base href="/">
+  <%= if @valid do %>
+  <meta property="og:image" content={Routes.static_path(@conn, "/images/empty.png" )}>
+  <meta property="og:type" content="video.other">
+  <meta property="og:video:url" content={@url}>
+  <meta property="og:video:width" content="1280">
+  <meta property="og:video:height" content="720">
+  <% else %>
+  <meta property="og:description" content="not a discord attachment">
+  <% end %>
+  <link rel="icon" type="image/png" href="/favicon.png">
+</head>
+
+<body>
+</body>
+
+</html>
