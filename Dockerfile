@@ -8,13 +8,13 @@
 # This file is based on these images:
 #
 #   - https://hub.docker.com/r/hexpm/elixir/tags - for the build image
-#   - https://hub.docker.com/_/debian?tab=tags&page=1&name=bullseye-20210902-slim - for the release image
+#   - https://hub.docker.com/_/debian?tab=tags&page=1&name=bullseye-20230202-slim - for the release image
 #   - https://pkgs.org/ - resource for finding needed packages
-#   - Ex: hexpm/elixir:1.13.0-erlang-24.3.2-debian-bullseye-20210902-slim
+#   - Ex: hexpm/elixir:1.14.0-erlang-25.2.3-debian-bullseye-20230202-slim
 #
-ARG ELIXIR_VERSION=1.13.0
-ARG OTP_VERSION=24.3.2
-ARG DEBIAN_VERSION=bullseye-20210902-slim
+ARG ELIXIR_VERSION=1.14.0
+ARG OTP_VERSION=25.2.3
+ARG DEBIAN_VERSION=bullseye-20230202-slim
 
 ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
 ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
@@ -87,12 +87,6 @@ WORKDIR "/app"
 ENV MIX_ENV="prod"
 
 # Only copy the final release from the build stage
-COPY --from=builder /app/_build/${MIX_ENV}/rel/test ./
-
-USER root
+COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/test ./
 
 CMD fallocate -l 4G _swapfile && mkswap _swapfile && swapon _swapfile && /app/bin/server
-
-# Appended by flyctl
-ENV ECTO_IPV6 true
-ENV ERL_AFLAGS "-proto_dist inet6_tcp"
