@@ -49,7 +49,6 @@ defmodule Test.MixProject do
       {:image_ex, github: "wwww-wwww/image_ex"},
       {:httpoison, "~> 1.8"},
       {:nostrum, github: "Kraigie/nostrum", runtime: Mix.env() != :dev},
-      {:cowlib, "~> 2.11", hex: :remedy_cowlib, override: true},
       {:ed25519, "~> 1.3"},
       {:uuid, "~> 1.1"}
     ]
