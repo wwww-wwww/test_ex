@@ -48,9 +48,8 @@ defmodule Test.MixProject do
       {:jxl_ex, github: "wwww-wwww/jxl_ex", submodules: true, branch: "jxl_from_tree"},
       {:image_ex, github: "wwww-wwww/image_ex"},
       {:httpoison, "~> 1.8"},
-      {:nostrum, github: "Kraigie/nostrum", runtime: Mix.env() != :dev},
-      {:ed25519, "~> 1.3"},
-      {:uuid, "~> 1.1"}
+      {:nostrum, github: "Kraigie/nostrum"},
+      {:ed25519, "~> 1.3"}
     ]
   end
 

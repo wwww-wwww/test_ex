@@ -1,11 +1,6 @@
 defmodule TestWeb.PageController do
   use TestWeb, :controller
 
-  def tmp_file() do
-    System.tmp_dir!()
-    |> Path.join(UUID.uuid1())
-  end
-
   def index(conn, _params) do
     render(conn, "index.html")
   end
@@ -26,27 +21,16 @@ defmodule TestWeb.PageController do
   def encode_png(body) do
     case Test.Decoder.decode(body) do
       {_, [frame]} ->
-        data = ImageEx.Png.lodepng_encode(frame) |> elem(1)
-        path = tmp_file()
-        File.write!(path, data, [:binary])
-        path
+        ImageEx.Png.lodepng_encode(frame) |> elem(1)
 
       {basic_info, frames} ->
-        data = ImageEx.Png.encode_animation(frames, basic_info)
-        path = tmp_file()
-        File.write!(path, data, [:binary])
-        path
+        ImageEx.Png.encode_animation(frames, basic_info)
     end
   end
 
   def encode_gif(body) when is_bitstring(body) do
-    data =
-      Test.Decoder.decode(body)
-      |> encode_gif()
-
-    path = tmp_file()
-    File.write!(path, data, [:binary])
-    path
+    Test.Decoder.decode(body)
+    |> encode_gif()
   end
 
   def encode_gif({basic_info, frames}) do
@@ -61,33 +45,25 @@ defmodule TestWeb.PageController do
 
     {:ok, encoder} = ImageEx.Gif.create(basic_info.xsize, basic_info.ysize, 8)
 
-    data =
-      Enum.reduce(frames, encoder, fn frame, encoder ->
-        frame =
-          frame
-          |> JxlEx.Image.add_alpha!()
-          |> JxlEx.Image.gray_to_rgb!()
+    Enum.reduce(frames, encoder, fn frame, encoder ->
+      frame =
+        frame
+        |> JxlEx.Image.add_alpha!()
+        |> JxlEx.Image.gray_to_rgb!()
 
-        encoder
-        |> ImageEx.Gif.add_frame!(
-          frame.image,
-          round(rate * duration)
-        )
-      end)
-      |> ImageEx.Gif.finish!()
-
-    path = tmp_file()
-    File.write!(path, data, [:binary])
-    path
+      encoder
+      |> ImageEx.Gif.add_frame!(
+        frame.image,
+        round(rate * duration)
+      )
+    end)
+    |> ImageEx.Gif.finish!()
   end
 
   def encode_auto(body) do
     case Test.Decoder.decode(body) do
       {_, [frame]} ->
-        data = ImageEx.Png.lodepng_encode(frame) |> elem(1)
-        path = tmp_file()
-        File.write!(path, data, [:binary])
-        {:png, path}
+        {:png, ImageEx.Png.lodepng_encode(frame) |> elem(1)}
 
       {basic_info, frames} ->
         {:gif, encode_gif({basic_info, frames})}
@@ -218,90 +194,44 @@ defmodule TestWeb.PageController do
     end
   end
 
-  def proxy(conn, %{"path" => path}) do
-    url = Path.join("https://cdn.discordapp.com/", Enum.join(["attachments"] ++ path, "/"))
+  def jxl_auto(conn, {url, path}) do
+    case download(url) do
+      {:ok, body} ->
+        if supported?(conn, "image/jxl") do
+          conn
+          |> put_resp_content_type("image/jxl")
+          |> put_resp_header(
+            "Content-disposition",
+            "inline; filename=\"#{Path.basename(path)}\""
+          )
+          |> send_resp(200, body)
+        else
+          case decode(body, url, :auto) do
+            {:ok, mime, ext, data} ->
+              conn
+              |> put_resp_content_type(mime)
+              |> put_resp_header(
+                "Content-disposition",
+                "inline; filename=\"#{Path.basename(path)}.#{ext}\""
+              )
+              |> send_resp(200, data)
 
-    case Test.DecodeCacheDisk.get(url) do
-      nil ->
-        case HTTPoison.get(url) do
-          {:ok, %HTTPoison.Response{body: body}} ->
-            f = tmp_file()
-            File.write!(f, body, [:binary])
-
-            Test.DecodeCacheDisk.put({f, :video}, url)
-            |> elem(0)
-
-          _ ->
-            nil
+            err ->
+              conn |> send_resp(500, inspect(err))
+          end
         end
 
-      {f, :video} ->
-        f
-
-      _ ->
-        nil
+      err ->
+        conn |> send_resp(500, inspect(err))
     end
-    |> case do
-      nil -> send_resp(conn, 404, "")
-      f -> send_file(conn, 200, f)
-    end
-  end
-
-  def jxl_auto(conn, {url, path}) do
-    ext = Path.extname(path)
-
-    if ext == ".mp4" or ext == ".webm" do
-      if String.starts_with?(url, "https://cdn.discordapp.com/") do
-        url = String.replace(url, "https://cdn.discordapp.com/", "/")
-        IO.inspect(url)
-
-        conn
-        |> put_root_layout(false)
-        |> render("video.html", url: url, valid: true)
-      else
-        conn
-        |> put_root_layout(false)
-        |> render("video.html", valid: false)
-      end
-    else
-      case download(url) do
-        {:ok, body} ->
-          if supported?(conn, "image/jxl") do
-            conn
-            |> put_resp_content_type("image/jxl")
-            |> put_resp_header(
-              "Content-disposition",
-              "inline; filename=\"#{Path.basename(path)}\""
-            )
-            |> send_resp(200, body)
-          else
-            case decode(body, url, :auto) do
-              {:ok, mime, ext, file} ->
-                conn
-                |> put_resp_content_type(mime)
-                |> put_resp_header(
-                  "Content-disposition",
-                  "inline; filename=\"#{Path.basename(path)}.#{ext}\""
-                )
-                |> send_file(200, file)
-
-              err ->
-                conn |> send_resp(500, inspect(err))
-            end
-          end
-
-        err ->
-          conn |> send_resp(500, inspect(err))
-      end
-    end
-  end
-
-  def jxl_auto(conn, _) do
-    jxl_auto(conn, get_path(conn))
   end
 
   def jxl_auto_gif(conn, %{"q" => q}) do
     jxl_auto(conn, {q, q})
+  end
+
+  def jxl_auto(conn, _) do
+    jxl_auto(conn, get_path(conn))
   end
 
   def jxl(conn, %{"only" => only}) do

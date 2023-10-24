@@ -14,18 +14,12 @@ defmodule Test.Application do
       {Phoenix.PubSub, name: Test.PubSub},
       # Start the Endpoint (http/https)
       TestWeb.Endpoint,
-      Test.DecodeCacheDisk,
+      Test.DecodeCache,
       Test.DecodeCacheDecoder,
       Test.Decoder,
-      Test.InteractionHandler
+      Test.InteractionHandler,
+      Test.Consumer
     ]
-
-    children =
-      if Mix.env() != :dev do
-        children ++ [Test.Consumer]
-      else
-        children
-      end
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options

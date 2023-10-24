@@ -21,7 +21,6 @@ if config_env() == :prod do
     secret_key_base: secret_key_base
 end
 
-if Mix.env() != :dev do
 config :nostrum,
   token: Map.fetch!(System.get_env(), "DISCORD_TOKEN"),
   num_shards: :auto
@@ -29,4 +28,3 @@ config :nostrum,
 config :test,
   discord_public_key:
     Base.decode16!(Map.fetch!(System.get_env(), "DISCORD_PUBLIC_KEY"), case: :mixed)
-end
